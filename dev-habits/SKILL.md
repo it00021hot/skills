@@ -91,3 +91,4 @@ description: 用户的个人开发习惯与协作约定。适用于一切工程�
 52. 契约两端同源且同步演进：serde 模型/struct 与 zod schema 是同一契约的两份手写副本，改一端同一 commit 改另一端；能用生成器（ts-rs、openapi codegen、protobuf）就不手写，项目已约定生成入口时优先走生成器；响应必须过 schema 校验再进 UI，禁 `as T` 裸转与 any——校验失败就是"后端改了签名"，必须立刻暴露，不许静默兜底。
 53. 命令与事件命名分层固定：IPC 命令名 snake_case（对齐 Rust 函数名）；事件名 kebab-case 字符串常量，两端常量镜像（Rust `names` 模块 ↔ 前端 `EVENTS`），只改一端的静默失效要靠测试或注释钉住。
 54. 参数与载荷一律用静态类型承载，禁裸 JSON/map 拼装：Rust 定义 `struct`（`Serialize`/`Deserialize`），Go 定义结构体 + `json` tag，TS 用 zod schema + `z.infer` 推导类型；`serde_json::json!`、`map[string]any`、对象字面量只允许出现在测试 fixture 与日志序列化，不允许作为 IPC payload、事件载荷、第三方请求体或查询参数的类型来源。
+55. 前端禁 `any`：类型没写对就 `unknown` + 收窄，不许拿 `any`/`as any` 绕过编译检查，`@ts-ignore` 与无理由 `eslint-disable` 同禁；确实绕不开的第三方无类型面，局部声明类型或收窄后 cast 并在注释里写明为什么。此条由 ESLint 钉死（`@typescript-eslint/no-explicit-any` 及 `no-unsafe-*` 系列，配 type-aware 规则），报错清零再交付（第 17 条）。
