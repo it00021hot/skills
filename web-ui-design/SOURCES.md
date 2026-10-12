@@ -10,6 +10,15 @@ Audit snapshot date: 2026-09-29. Complete source snapshots and full file invento
 | [Apple Design Skill](https://github.com/dickwu/apple-design-skill/tree/39ea3fb) | `39ea3fb`, 2026-09-22 | Workflow and source index audited from temporary checkout; HIG source pages indexed | No general license for the skill was identified; Apple HIG text belongs to Apple. No HIG text copied. Official HIG linked in `platform-principles.md`. |
 | [Desktop UI Design Skills Pack](https://github.com/palamut62/ui-design-skills-pack/tree/4ffc9d6) | `4ffc9d6`, 2026-06-04 | README, license, and all 19 style Skills | MIT; original LICENSE retained in archive. Styles reviewed as conditional visual options. |
 
+## Upstream re-verification
+
+Re-checked against upstream on 2026-10-12:
+
+- [Anthropic frontend-design](https://github.com/anthropics/claude-code/tree/dec92bc/plugins/frontend-design/skills/frontend-design): `main` has advanced to `3deb873` (2026-10-11, 36 commits), but the `plugins/frontend-design/` subtree is unchanged since the audited `dec92bc` — the new commits touch `mods/`, CI workflows, and the changelog. No source text was ever copied from it; no re-audit needed.
+- [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/tree/09170ee/.claude/skills/ui-ux-pro-max): `main` has advanced to `7246805` (2026-10-12, 7 commits). The changes are confined to brand/design generator scripts, CLI installer templates (new `amazonq` and `openclaw` platform targets), manifests, and test fixtures; the Skill's instruction content and data catalogs are unchanged (one test fixture line moved). The repo's marketing `STACK.md` re-counts the catalogs (79 UI styles, 74 font pairings, 119 UX guidelines) while the catalog data files themselves did not change; this Skill cites no counts, so there is nothing to sync.
+- [Apple Design Skill](https://github.com/dickwu/apple-design-skill/tree/39ea3fb): `main` has advanced to `904b0ee` (2026-10-02, 2 commits): sponsorship metadata plus an HIG reference re-pull that updates two Apple developer links (custom-symbol guidance now at `developer.apple.com/documentation/technologyoverviews/custom-sf-symbols`). This Skill copies no HIG text and links only the top-level HIG URL, which is unchanged; no action needed.
+- [Frontend UI/UX Skill](https://github.com/overseek944/frontend-ui-ux-skill) at `fa25478` and [Desktop UI Design Skills Pack](https://github.com/palamut62/ui-design-skills-pack) at `4ffc9d6`: upstream HEADs unmoved since the recorded snapshots.
+
 ## Extraction and conflict decisions
 
 - The user brief determines purpose, audience, real content, and desired direction.
