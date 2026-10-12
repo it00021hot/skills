@@ -1,6 +1,6 @@
 ---
 name: web-ui-design
-description: Design, implement, or review user-facing web interfaces, including sites, web apps, dashboards, forms, components, responsive layouts, design systems, accessibility, and interaction quality. Use for visual or interaction changes; skip backend-only work.
+description: Design, implement, or review user-facing web interfaces in a product or codebase context, including sites, web apps, dashboards, forms, components, responsive layouts, design systems, accessibility, and interaction quality. The default skill for web UI changes and component fixes. For a brand-new visual identity from scratch, frontend-design covers aesthetic direction. Skip backend-only work.
 ---
 
 # Web UI Design
