@@ -1,0 +1,27 @@
+version: "2"
+
+# dev-habits『工具链报错清零』『错误处理按项目约定』『查询参数化』的 Go 落地。
+# 用法：拷入项目根目录；工具版本锁定，不随 CI 静默升级。
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard
+  enable:
+    - errcheck      # 错误不许丢：对应『错误处理按项目约定』
+    - gosec         # 注入、凭证、弱随机扫描：对应『查询参数化』『外部输入不可信』
+    - revive        # 阿里系注释与命名规范：对应『注释写为什么』
+    - misspell
+    - unconvert
+    - unused
+  settings:
+    revive:
+      rules:
+        - name: exported          # 导出项必须有文档注释
+        - name: package-comments  # 包级注释；老项目可按包 allow 并在注释里写明原因
+        - name: var-naming        # 大小写与惯用语初始名
+
+formatters:
+  enable:
+    - gofumpt       # gofmt 超集，强制；项目若已统一 plain gofmt 可换 gofmt

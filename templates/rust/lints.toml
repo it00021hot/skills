@@ -1,0 +1,16 @@
+# dev-habits『错误处理按项目约定』『调试残留清零』的 Rust 落地。
+# clippy 的 lint 级别只能写在 Cargo.toml 的 [lints] 表（clippy.toml 只调行为、不定级别），
+# 把下面整段并入项目根目录的 Cargo.toml；工具版本锁定，不随 CI 静默升级。
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "deny"     # 禁 unwrap：对应「不用 panic 走业务流程」
+expect_used = "deny"     # 同 unwrap；确有把握的 expect 用 #[allow] 局部放行并注释原因
+panic = "deny"           # 禁显式 panic
+todo = "deny"            # 禁 todo! 空实现
+unimplemented = "deny"
+dbg_macro = "deny"       # 禁 dbg!
+print_stdout = "deny"    # 禁 println! 调试残留：对应『调试残留清零』
+print_stderr = "deny"    # 日志走结构化日志，不裸写 stderr：见『结构化与脱敏』

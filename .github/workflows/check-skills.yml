@@ -6,8 +6,8 @@ on:
   pull_request:
 
 jobs:
-  frontmatter:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - run: bash scripts/check-frontmatter.sh
+      - run: bash scripts/check-all.sh

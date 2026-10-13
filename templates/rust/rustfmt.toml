@@ -1,0 +1,9 @@
+# dev-habits『工具链报错清零』的 Rust 落地：格式化交给工具，禁手工排版争议。
+# 用法：拷入项目根目录；edition 跟随 Cargo.toml，此处不设。
+# 更严风格按项目追加；不允许为单行豁免手工排版。
+
+max_width = 120
+newline_style = "Unix"
+use_field_init_shorthand = true
+use_try_shorthand = true
+reorder_imports = true

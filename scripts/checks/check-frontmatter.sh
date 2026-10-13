@@ -8,6 +8,7 @@ set -euo pipefail
 fail=0
 
 for skill_md in */SKILL.md; do
+  [ -e "$skill_md" ] || continue
   dir=$(basename "$(dirname "$skill_md")")
 
   if ! head -n 1 "$skill_md" | grep -q '^---$'; then
@@ -26,6 +27,7 @@ for skill_md in */SKILL.md; do
   fm=$(sed -n "2,$((fm_end - 1))p" "$skill_md")
   name=$(printf '%s\n' "$fm" | sed -n 's/^name: *//p')
   desc=$(printf '%s\n' "$fm" | sed -n 's/^description: *//p')
+  desc_lines=$(printf '%s\n' "$fm" | grep -c '^description:' || true)
 
   if [ "$name" != "$dir" ]; then
     echo "FAIL $skill_md: name（$name）与目录名（$dir）不一致"
@@ -36,6 +38,10 @@ for skill_md in */SKILL.md; do
     echo "FAIL $skill_md: 缺少 description"
     fail=1
   else
+    if [ "$desc_lines" -ne 1 ]; then
+      echo "FAIL $skill_md: description 必须单行（当前 $desc_lines 行）"
+      fail=1
+    fi
     case "$desc" in
       *': '*) echo "FAIL $skill_md: description 含 ': '，plain scalar 会被 YAML 截断"; fail=1 ;;
     esac
