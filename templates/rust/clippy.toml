@@ -1,0 +1,4 @@
+# dev-habits『参数收敛』的阈值调整。clippy.toml 只调阈值、不定级别（级别在 Cargo.toml [lints] 表）；
+# 与 lints.toml 一起拷到项目根目录（clippy 从工作区根找 clippy.toml）。
+
+too-many-arguments-threshold = 5 # 条款提醒 3 个，机械放宽一档防为收敛而造纯装载 struct

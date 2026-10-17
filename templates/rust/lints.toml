@@ -1,6 +1,6 @@
-# dev-habits『错误处理按项目约定』『调试残留清零』的 Rust 落地。
+# dev-habits『错误处理按项目约定』『调试残留清零』『函数只做一件事』『参数收敛』的 Rust 落地。
 # clippy 的 lint 级别只能写在 Cargo.toml 的 [lints] 表（clippy.toml 只调行为、不定级别），
-# 把下面整段并入项目根目录的 Cargo.toml；工具版本锁定，不随 CI 静默升级。
+# 把下面整段并入项目根目录的 Cargo.toml，阈值调整拷同目录 clippy.toml；工具版本锁定，不随 CI 静默升级。
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -14,3 +14,5 @@ unimplemented = "deny"
 dbg_macro = "deny"       # 禁 dbg!
 print_stdout = "deny"    # 禁 println! 调试残留：对应『调试残留清零』
 print_stderr = "deny"    # 日志走结构化日志，不裸写 stderr：见『结构化与脱敏』
+too_many_lines = "warn"     # 函数长度提醒档：对应『函数只做一件事』，默认阈值 100 行
+too_many_arguments = "warn" # 参数个数提醒档：对应『参数收敛』，阈值见 clippy.toml
