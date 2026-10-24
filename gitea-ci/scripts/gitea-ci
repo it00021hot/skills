@@ -1,0 +1,70 @@
+#!/bin/bash
+# gitea-ci — Gitea Actions 查询 CLI（配 gitea-ci skill 使用）
+# 配置（环境变量）:
+#   GITEA_API_BASE    API 根，如 https://gitea.example.com/api/v1（必填）
+#   GITEA_TOKEN_FILE  token 文件路径（默认 ~/.gitea-token，权限 600）
+#   GITEA_ORG         默认 owner（repo 参数不含 / 时使用）
+# 用法:
+#   gitea-ci list [repo] [limit]    最近 runs（limit 默认 5）
+#   gitea-ci fail [repo] [limit]    最近失败的 runs
+#   gitea-ci jobs <run_id> [repo]   某 run 的 job/step 结论
+#   gitea-ci log  <job_id> [repo]   某 job 的完整日志（明文）
+set -euo pipefail
+
+TOKEN_FILE="${GITEA_TOKEN_FILE:-$HOME/.gitea-token}"
+BASE="${GITEA_API_BASE:?需设置 GITEA_API_BASE（如 https://gitea.example.com/api/v1）}"
+TOKEN="$(cat "$TOKEN_FILE")"
+
+org_repo() {
+  case "$1" in
+    */*) printf '%s' "$1" ;;
+    *) printf '%s/%s' "${GITEA_ORG:?repo 未含 owner 且未设 GITEA_ORG}" "$1" ;;
+  esac
+}
+
+api() { # $1=owner/repo  $2=路径
+  curl -sS -m 15 -H "Authorization: token $TOKEN" "$BASE/repos/$(org_repo "$1")$2"
+}
+
+list_runs() {
+  local repo="$1" limit="$2" only="${3:-}"
+  api "$repo" "/actions/tasks?limit=$limit" | python3 -c '
+import json,sys,re
+only = sys.argv[1]
+d = json.load(sys.stdin)
+rows = d.get("workflow_runs", [])
+if only:
+    rows = [r for r in rows if r.get("status") == only]
+for r in rows:
+    m = re.search(r"/runs/(\d+)", r.get("url",""))
+    run_id = m.group(1) if m else "?"
+    line = "%6s  #%-4s %-9s %-14s %-32s %s  %s" % (
+        run_id, r.get("run_number"), r.get("status"), r.get("head_branch","-"),
+        r.get("workflow_id",""), r.get("created_at","")[:16], r.get("display_title","")[:48])
+    print(line)
+' "$only"
+  if [ "$only" = "failure" ]; then echo "→ 查日志: gitea-ci jobs <run_id> $repo" >&2; fi
+}
+
+show_jobs() {
+  local run="$1" repo="$2"
+  api "$repo" "/actions/runs/$run/jobs" | python3 -c '
+import json,sys
+repo = sys.argv[1]
+d = json.load(sys.stdin)
+for j in d.get("jobs", []):
+    print("job %s  %s/%s  runner=%s" % (j["id"], j.get("status"), j.get("conclusion"), j.get("runner_name","-")))
+    for s in j.get("steps", []):
+        print("  %s/%s  %s" % (s.get("status"), s.get("conclusion"), s.get("name")))
+    print("→ 日志: gitea-ci log %s %s" % (j["id"], repo))
+' "$repo"
+}
+
+cmd="${1:-list}"
+case "$cmd" in
+  list) list_runs "${2:?用法: gitea-ci list <owner/repo 或 repo>}" "${3:-5}" "" ;;
+  fail) list_runs "${2:?用法: gitea-ci fail <owner/repo 或 repo>}" "${3:-5}" "failure" ;;
+  jobs) show_jobs "$2" "${3:?用法: gitea-ci jobs <run_id> <owner/repo 或 repo>}" ;;
+  log)  api "${3:?用法: gitea-ci log <job_id> <owner/repo 或 repo>}" "/actions/jobs/$2/logs" ;;
+  *) sed -n '2,11p' "$0"; exit 1 ;;
+esac
