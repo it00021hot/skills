@@ -1,24 +1,77 @@
 #!/bin/bash
 # gitea-ci — Gitea Actions 查询 CLI（配 gitea-ci skill 使用）
-# 配置（环境变量）:
-#   GITEA_API_BASE    API 根，如 https://gitea.example.com/api/v1（必填）
-#   GITEA_TOKEN_FILE  token 文件路径（默认 ~/.gitea-token，权限 600）
-#   GITEA_ORG         默认 owner（repo 参数不含 / 时使用）
+# 配置：用户级配置文件（默认 ~/.config/gitea-ci/config.json，GITEA_CI_CONFIG 可改路径）：
+#   {
+#     "default": "work",
+#     "instances": {
+#       "work": { "api_base": "https://gitea.example.com/api/v1", "org": "my-org", "token": "..." },
+#       "home": { "api_base": "http://gitea.lan:3000/api/v1", "token_file": "~/.gitea-home-token" }
+#     }
+#   }
+#   token 内联或 token_file 引用独立文件，二选一；配置文件建议 chmod 600。
 # 用法:
-#   gitea-ci list [repo] [limit]    最近 runs（limit 默认 5）
-#   gitea-ci fail [repo] [limit]    最近失败的 runs
-#   gitea-ci jobs <run_id> [repo]   某 run 的 job/step 结论
-#   gitea-ci log  <job_id> [repo]   某 job 的完整日志（明文）
+#   gitea-ci list [repo] [limit]        最近 runs（limit 默认 5）
+#   gitea-ci fail [repo] [limit]        最近失败的 runs
+#   gitea-ci jobs <run_id> [repo]       某 run 的 job/step 结论
+#   gitea-ci log  <job_id> [repo]       某 job 的完整日志（明文）
+#   gitea-ci -i <实例名> <子命令> ...    选用指定实例（缺省取 default，仅一个实例时可省）
+# 环境变量覆盖: GITEA_API_BASE / GITEA_ORG / GITEA_TOKEN_FILE
 set -euo pipefail
 
-TOKEN_FILE="${GITEA_TOKEN_FILE:-$HOME/.gitea-token}"
-BASE="${GITEA_API_BASE:?需设置 GITEA_API_BASE（如 https://gitea.example.com/api/v1）}"
-TOKEN="$(cat "$TOKEN_FILE")"
+CONFIG_FILE="${GITEA_CI_CONFIG:-$HOME/.config/gitea-ci/config.json}"
+
+instance="${GITEA_CI_INSTANCE:-}"
+if [ "${1:-}" = "-i" ]; then
+  instance="${2:?用法: gitea-ci -i <实例名> <子命令> ...}"
+  shift 2
+fi
+
+resolved="$(python3 - "$CONFIG_FILE" "$instance" <<'PY'
+import json, os, sys
+path, inst = sys.argv[1], sys.argv[2]
+p = os.path.expanduser(path)
+try:
+    cfg = json.load(open(p))
+except FileNotFoundError:
+    sys.exit("缺少配置文件 %s —— 创建它并填入 instances（模板见 gitea-ci skill §0）" % path)
+except json.JSONDecodeError as e:
+    sys.exit("配置文件 %s 不是合法 JSON: %s" % (path, e))
+instances = cfg.get("instances", {})
+if not inst:
+    inst = cfg.get("default") or (next(iter(instances)) if len(instances) == 1 else None)
+if not inst or inst not in instances:
+    sys.exit("实例 %r 未在 %s 定义（现有: %s）" % (inst, path, ", ".join(instances) or "无"))
+v = instances[inst]
+api_base = os.environ.get("GITEA_API_BASE") or v.get("api_base", "")
+org = os.environ.get("GITEA_ORG") or v.get("org", "")
+token = ""
+tf = os.environ.get("GITEA_TOKEN_FILE") or v.get("token_file", "")
+if tf:
+    tfp = os.path.expanduser(tf)
+    try:
+        token = open(tfp).read().strip()
+    except FileNotFoundError:
+        sys.exit("token 文件不存在: %s" % tfp)
+if not token:
+    token = (v.get("token") or "").strip()
+if not token:
+    sys.exit("实例 %r 未配置 token 或 token_file" % inst)
+if not api_base:
+    sys.exit("实例 %r 未配置 api_base" % inst)
+print(api_base)
+print(token)
+print(org)
+PY
+)"
+BASE="$(sed -n 1p <<<"$resolved")"
+TOKEN="$(sed -n 2p <<<"$resolved")"
+ORG="$(sed -n 3p <<<"$resolved")"
 
 org_repo() {
   case "$1" in
     */*) printf '%s' "$1" ;;
-    *) printf '%s/%s' "${GITEA_ORG:?repo 未含 owner 且未设 GITEA_ORG}" "$1" ;;
+    *) [ -n "$ORG" ] || { echo "repo 未含 owner 且实例未配 org，无法定位 $1" >&2; exit 1; }
+       printf '%s/%s' "$ORG" "$1" ;;
   esac
 }
 
@@ -66,5 +119,5 @@ case "$cmd" in
   fail) list_runs "${2:?用法: gitea-ci fail <owner/repo 或 repo>}" "${3:-5}" "failure" ;;
   jobs) show_jobs "$2" "${3:?用法: gitea-ci jobs <run_id> <owner/repo 或 repo>}" ;;
   log)  api "${3:?用法: gitea-ci log <job_id> <owner/repo 或 repo>}" "/actions/jobs/$2/logs" ;;
-  *) sed -n '2,11p' "$0"; exit 1 ;;
+  *) sed -n '2,18p' "$0"; exit 1 ;;
 esac

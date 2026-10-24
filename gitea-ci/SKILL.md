@@ -5,15 +5,24 @@ description: Gitea Actions 流水线查询与排障——查 run 状态、失败
 
 # Gitea Actions 流水线查询与排障
 
-## 0. 配置（三个环境变量，无硬编码站点信息）
+## 0. 配置（用户级配置文件，一处配置处处可用）
 
-| 变量 | 说明 | 示例 |
-|------|------|------|
-| `GITEA_API_BASE` | API 根地址（必填） | `https://gitea.example.com/api/v1` |
-| `GITEA_TOKEN_FILE` | token 文件路径（默认 `~/.gitea-token`，权限 600） | `~/.gitea-token` |
-| `GITEA_ORG` | 默认 owner（repo 参数不含 `/` 时使用） | `my-org` |
+`~/.config/gitea-ci/config.json`（路径可用 `GITEA_CI_CONFIG` 改；**建议 `chmod 600`**，token 走内联时必做）：
 
-token 是机密：不入仓、不入 skill、不提交，只存本机文件（`chmod 600`）。
+```json
+{
+  "default": "work",
+  "instances": {
+    "work": { "api_base": "https://gitea.example.com/api/v1", "org": "my-org", "token": "xxxxxxxx" },
+    "home": { "api_base": "http://gitea.lan:3000/api/v1", "token_file": "~/.gitea-home-token" }
+  }
+}
+```
+
+- `token` 内联 或 `token_file` 引用独立 token 文件（推荐，密钥与配置分离），二选一。
+- 多实例：`gitea-ci -i home list my-repo`；缺省用 `default`，仅一个实例时可省 `default`。
+- `org` 供裸 repo 名补全 owner；环境变量 `GITEA_API_BASE` / `GITEA_TOKEN_FILE` / `GITEA_ORG` / `GITEA_CI_INSTANCE` 可临时覆盖。
+- 未配置时 CLI 明确报错并指回本节；token 是机密，不入仓、不入 skill、不提交。
 
 ## 1. 快查 CLI：`gitea-ci`
 
@@ -26,7 +35,7 @@ gitea-ci jobs <run_id> my-repo   # 某 run 的 job 与每个 step 的成败（�
 gitea-ci log  <job_id> my-repo   # 某 job 完整明文日志（text/plain，直接输出）
 ```
 
-repo 参数可写裸名（配合 `GITEA_ORG`）或完整 `owner/repo`。
+repo 参数可写裸名（配合配置里的 `org`）或完整 `owner/repo`；多实例加 `-i 实例名`。
 
 典型排障会话：`fail` 拿 run_id → `jobs` 看 step 结论 → `log` 看报错输出。全程 3 条命令，约 5 秒，不登 Web UI、不查数据库。
 
@@ -51,7 +60,7 @@ chmod 600 ~/.gitea-token
 ```
 
 - 吊销/重生成：Web UI 用户设置 → 应用 → 删除对应 token，再按上命令生成；token 名不可重复，重签请换名字（带日期）。
-- **新机器**：不要拷 token 文件——新机器能排障就必然能 SSH 到 Gitea 主机，直接重签一个（30 秒，各机器独立可吊销）。实在要拷：`scp` 后 `chmod 600`，代价是共用 token，一处泄漏两处同废。
+- **新机器**：不要拷 token——新机器能排障就必然能 SSH 到 Gitea 主机，直接重签一个（30 秒，各机器独立可吊销），然后写好 §0 的配置文件即全部可用。
 - 排障只需读权限，`read:repository` 足够；不要图省事签 `all`。
 
 ## 4. DB 备选路径（API 不可用时）
